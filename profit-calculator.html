@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>跨境卖家利润计算器 · Temu核价 & TikTok达人</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --primary: #2563eb;
+    --primary-soft: #eff6ff;
+    --green: #16a34a;
+    --green-soft: #f0fdf4;
+    --red: #dc2626;
+    --red-soft: #fef2f2;
+    --yellow: #d97706;
+    --yellow-soft: #fffbeb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { font-size: 22px; margin-bottom: 6px; }
+  header p { color: var(--muted); font-size: 13px; }
+
+  .tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
+  .tab-btn {
+    padding: 10px 22px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--card); cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted);
+    transition: all .15s;
+  }
+  .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 16px; margin-bottom: 4px; }
+  .card .desc { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; line-height: 1.6; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; background: #fafafa;
+  }
+  .field input:focus { outline: none; border-color: var(--primary); background: #fff; }
+  .field .unit { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+  .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 16px; }
+  .kpi {
+    border-radius: 10px; padding: 14px; background: var(--primary-soft);
+  }
+  .kpi .k { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .kpi .v { font-size: 22px; font-weight: 700; }
+  .kpi.good { background: var(--green-soft); } .kpi.good .v { color: var(--green); }
+  .kpi.bad { background: var(--red-soft); } .kpi.bad .v { color: var(--red); }
+  .kpi.warn { background: var(--yellow-soft); } .kpi.warn .v { color: var(--yellow); }
+
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; }
+  .bar-row .name { width: 130px; color: var(--muted); flex-shrink: 0; }
+  .bar-row .track { flex: 1; height: 14px; background: #f3f4f6; border-radius: 7px; overflow: hidden; }
+  .bar-row .fill { height: 100%; border-radius: 7px; }
+  .bar-row .amt { width: 90px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+  .tips { margin-top: 12px; padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.8; }
+  .tips.warn { background: var(--yellow-soft); color: #92400e; }
+  .tips.danger { background: var(--red-soft); color: #991b1b; }
+  .tips.ok { background: var(--green-soft); color: #166534; }
+  .tips b { font-weight: 700; }
+
+  .preset-btn {
+    background: none; border: 1px dashed var(--primary); color: var(--primary);
+    border-radius: 8px; padding: 6px 14px; font-size: 12.5px; cursor: pointer; margin-top: 12px;
+  }
+  .preset-btn:hover { background: var(--primary-soft); }
+
+  .cheats { font-size: 13px; line-height: 2; color: var(--text); }
+  .cheats li { margin-left: 18px; }
+  .cheats .tag {
+    display: inline-block; background: var(--primary-soft); color: var(--primary);
+    font-size: 11px; border-radius: 4px; padding: 1px 6px; margin-right: 6px; font-weight: 600;
+  }
+  footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 28px; line-height: 1.8; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>跨境卖家利润计算器</h1>
+    <p>Temu 全托管核价测算 · TikTok 达人带货模型 —— 基于平台比价规则构建</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabTemu" onclick="switchTab('temu')">Temu 全托管</button>
+    <button class="tab-btn" id="tabTiktok" onclick="switchTab('tiktok')">TikTok 达人带货</button>
+    <button class="tab-btn" id="tabRules" onclick="switchTab('rules')">核价规则小抄</button>
+  </div>
+
+  <!-- ================= Temu ================= -->
+  <div id="panelTemu">
+    <div class="card">
+      <h2>① 成本与报价</h2>
+      <p class="desc">填入你的真实成本和平台核定价，实时测算这笔单还能不能做。</p>
+      <div class="grid">
+        <div class="field"><label>1688 拿货单价</label><input type="number" id="t_sourcing" value="11.9"><div class="unit">元/件</div></div>
+        <div class="field"><label>国内运费 + 包材 + 人工</label><input type="number" id="t_domestic" value="2.5"><div class="unit">元/件</div></div>
+        <div class="field"><label>退货损耗预留</label><input type="number" id="t_loss" value="0.5"><div class="unit">元/件（建议拿货价 3-5%）</div></div>
+        <div class="field"><label>平台核定价（供货价）</label><input type="number" id="t_nucleus" value="3.06"><div class="unit">USD/件</div></div>
+        <div class="field"><label>你的首报价</label><input type="number" id="t_first" value="12.45"><div class="unit">USD/件</div></div>
+        <div class="field"><label>美元汇率</label><input type="number" id="t_rate" value="7.10" step="0.01"><div class="unit">CNY/USD</div></div>
+      </div>
+      <button class="preset-btn" onclick="loadPreset()">📋 填入我的收纳箱案例（报价12.45 / 核价3.06）</button>
+    </div>
+
+    <div class="card">
+      <h2>② 测算结果</h2>
+      <div class="results" id="temuKpis"></div>
+      <div id="temuBars" style="margin-top:16px;"></div>
+      <div id="temuTips"></div>
+    </div>
+
+    <div class="card">
+      <h2>③ 首报价策略顾问</h2>
+      <div class="grid">
+        <div class="field"><label>你期望的成交价</label><input type="number" id="t_target" value="6.5"><div class="unit">USD/件</div></div>
+      </div>
+      <div class="results" id="quoteKpis"></div>
+      <div id="quoteTips"></div>
+    </div>
+  </div>
+
+  <!-- ================= TikTok ================= -->
+  <div id="panelTiktok" class="hidden">
+    <div class="card">
+      <h2>① 单件利润测算</h2>
+      <p class="desc">TikTok Shop 美区参考：平台佣金 6%（新商首30天 3%）+ 支付手续费约 2% + 达人佣金。</p>
+      <div class="grid">
+        <div class="field"><label>店铺售价</label><input type="number" id="k_price" value="24.99"><div class="unit">USD</div></div>
+        <div class="field"><label>拿货 + 头程物流</label><input type="number" id="k_cost" value="32"><div class="unit">元/件</div></div>
+        <div class="field"><label>尾程配送费</label><input type="number" id="k_ship" value="3.40"><div class="unit">USD/件</div></div>
+        <div class="field"><label>达人佣金率</label><input type="number" id="k_commission" value="18" step="1"><div class="unit">%</div></div>
+        <div class="field"><label>平台佣金率</label><input type="number" id="k_platform" value="6" step="0.5"><div class="unit">%</div></div>
+        <div class="field"><label>汇率</label><input type="number" id="k_rate" value="7.10" step="0.01"><div class="unit">CNY/USD</div></div>
+      </div>
+      <div class="results" id="tiktokKpis"></div>
+      <div id="tiktokTips"></div>
+    </div>
+
+    <div class="card">
+      <h2>② 达人寄样 ROI 模型</h2>
+      <p class="desc">批量联系达人前，先算清楚这笔样品费能换回多少销售额。比例可按自己实际数据调整。</p>
+      <div class="grid">
+        <div class="field"><label>计划触达达人数</label><input type="number" id="r_outreach" value="100"><div class="unit">人</div></div>
+        <div class="field"><label>回复率</label><input type="number" id="r_reply" value="10" step="0.5"><div class="unit">%</div></div>
+        <div class="field"><label>同意寄样率（占回复）</label><input type="number" id="r_sample" value="50" step="1"><div class="unit">%</div></div>
+        <div class="field"><label>寄样出单率</label><input type="number" id="r_convert" value="8" step="0.5"><div class="unit">%（寄样后真正出视频出单）</div></div>
+        <div class="field"><label>每达人平均带单量</label><input type="number" id="r_orders" value="15"><div class="unit">单</div></div>
+        <div class="field"><label>样品单件成本（含运费）</label><input type="number" id="r_sampleCost" value="45"><div class="unit">元</div></div>
+      </div>
+      <div class="results" id="roiKpis"></div>
+      <div id="roiTips"></div>
+    </div>
+  </div>
+
+  <!-- ================= Rules ================= -->
+  <div id="panelRules" class="hidden">
+    <div class="card">
+      <h2>Temu 全托管核价规则小抄</h2>
+      <p class="desc">平台比价系统的三个锚点，决定了你的报价天花板。</p>
+      <ul class="cheats">
+        <li><span class="tag">锚点1</span><b>1688/拼多多同源价</b> —— 你在 1688 挂的批发价就是核价天花板，1688 店铺和 Temu 报价必须隔离。</li>
+        <li><span class="tag">锚点2</span><b>站内同款竞争价</b> —— 有站内同款时按最低供货价的 <b>99折</b> 核价；没有站内同款才参考 1688。</li>
+        <li><span class="tag">锚点3</span><b>终端零售倒推</b> —— 平台先锚定终端售价（对标亚马逊/Shein 同款的 6–7 折），再倒推你的供货价空间。</li>
+        <li><span class="tag">策略1</span><b>首报锚高 15–20%</b> —— 核价几乎必砍，留出被砍空间；期望成交 ¥35 就首报 ¥40–42。</li>
+        <li><span class="tag">策略2</span><b>成本明细议价</b> —— 被要求降价时拆分成本给核价经理（原料/损耗/质检/包材/人工），有明细的议价通过率显著更高。</li>
+        <li><span class="tag">策略3</span><b>组合套装跳比价</b> —— 多尺寸组合、加配件、改包装，"套装"在系统里找不到同款，核价立刻宽松。</li>
+        <li><span class="tag">策略4</span><b>改主图躲图像搜索</b> —— 核价采用图像搜索，重拍有辨识度的场景图，降低被同款比价命中概率。</li>
+        <li><span class="tag">策略5</span><b>独家款有定价权</b> —— 平台对"全网独家/首发新款"有流量与价格倾斜，跟款永远被比价。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>TikTok Shop 美区关键数字（2026）</h2>
+      <ul class="cheats">
+        <li><span class="tag">门槛</span>美国 POP 店：企业执照 + 保证金 $1500 + 第三方电商经验；个体户可先做东南亚站。</li>
+        <li><span class="tag">费用</span>平台佣金 6%（新商首30天3%）+ 支付手续费约 2% + 达人佣金 15–20%。</li>
+        <li><span class="tag">物流</span>强制官方海外仓 / FBC，备货有仓储费；轻小件先小批量。</li>
+        <li><span class="tag">流量</span>没有货架自然流量兜底，订单来自短视频、直播、达人带货三处。</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    数据为公开规则与行业参考值，实际以平台实时核价为准 · 本工具可自由修改分发<br>
+    Built by 杰哥哥 · 跨境工具箱 #01
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 2) => (isFinite(n) ? n : 0).toFixed(d);
+const num = id => parseFloat($(id).value) || 0;
+
+function switchTab(name) {
+  ['temu', 'tiktok', 'rules'].forEach(t => {
+    $('panel' + (t === 'rules' ? 'Rules' : t === 'temu' ? 'Temu' : 'Tiktok')).classList.toggle('hidden', t !== name);
+  });
+  $('tabTemu').classList.toggle('active', name === 'temu');
+  $('tabTiktok').classList.toggle('active', name === 'tiktok');
+  $('tabRules').classList.toggle('active', name === 'rules');
+}
+
+function kpi(label, value, cls = '') {
+  return `<div class="kpi ${cls}"><div class="k">${label}</div><div class="v">${value}</div></div>`;
+}
+
+/* ---------- Temu ---------- */
+function calcTemu() {
+  const sourcing = num('t_sourcing'), domestic = num('t_domestic'), loss = num('t_loss');
+  const nucleusUSD = num('t_nucleus'), first = num('t_first'), rate = num('t_rate');
+  const cost = sourcing + domestic + loss;            // 总成本 元
+  const nucleusRMB = nucleusUSD * rate;               // 核价折人民币
+  const profit = nucleusRMB - cost;
+  const margin = nucleusRMB > 0 ? profit / nucleusRMB * 100 : 0;
+  const firstGap = first > 0 ? (first - nucleusUSD) / first * 100 : 0;
+
+  let cls = 'bad';
+  if (margin >= 20) cls = 'good'; else if (margin >= 10) cls = 'warn';
+
+  $('temuKpis').innerHTML =
+    kpi('单件总成本', '¥' + fmt(cost)) +
+    kpi('核价折人民币', '¥' + fmt(nucleusRMB)) +
+    kpi('单件毛利', (profit >= 0 ? '+' : '') + '¥' + fmt(profit), profit >= 0 ? 'good' : 'bad') +
+    kpi('毛利率', fmt(margin, 1) + '%', cls);
+
+  // cost breakdown bars
+  const items = [['拿货', sourcing], ['国内运费+包材', domestic], ['退货损耗', loss]];
+  const max = Math.max(cost, nucleusRMB, 0.01);
+  let bars = `<div class="bar-row"><div class="name">核价收入</div><div class="track"><div class="fill" style="width:${Math.min(nucleusRMB / max * 100, 100)}%;background:var(--primary)"></div></div><div class="amt">¥${fmt(nucleusRMB)}</div></div>`;
+  items.forEach(([n, v]) => {
+    bars += `<div class="bar-row"><div class="name">${n}</div><div class="track"><div class="fill" style="width:${Math.min(v / max * 100, 100)}%;background:var(--red)"></div></div><div class="amt">¥${fmt(v)}</div></div>`;
+  });
+  $('temuBars').innerHTML = `<div style="font-size:13px;font-weight:600;margin-bottom:4px">成本结构（每件）</div>` + bars;
+
+  // tips
+  let tips = '';
+  if (margin < 0) tips = `<div class="tips danger"><b>⛔ 亏损单。</b>核价 ¥${fmt(nucleusRMB)} 已低于成本 ¥${fmt(cost)}。别接——除非是清库存。解法：做组合套装跳出比价，或换款。</div>`;
+  else if (margin < 10) tips = `<div class="tips danger"><b>⚠️ 毛利不足 10%。</b>算上隐性成本（汇率波动、延误赔付）大概率白干。建议用成本明细找核价经理议价，或改做套装款。</div>`;
+  else if (margin < 20) tips = `<div class="tips warn"><b>🟡 勉强及格。</b>可以接但没安全感。留意：同款一旦有人报低价，核价会继续下压。尽早做差异化改款。</div>`;
+  else tips = `<div class="tips ok"><b>✅ 健康毛利。</b>注意维护：少量多频次备货，别一次囤大货，防止系统检测到库存滞销触发降价弹窗。</div>`;
+
+  if (first > 0 && nucleusUSD > 0) {
+    tips += `<div class="tips warn"><b>比价诊断：</b>你的首报价 $${fmt(first)} 被核到 $${fmt(nucleusUSD)}，砍幅 ${fmt(firstGap, 0)}%。` +
+      (firstGap > 50 ? `砍幅超过50%，说明系统在站内或1688找到了远低于你报价的同款——报价前先去1688搜同款最低价，别高过它太多。` : `砍幅在正常博弈范围内（15–40%属常见）。`) + `</div>`;
+  }
+  $('temuTips').innerHTML = tips;
+
+  // quote advisor
+  const target = num('t_target');
+  if (target > 0) {
+    const low = target * 1.15, high = target * 1.22;
+    $('quoteKpis').innerHTML =
+      kpi('建议首报价区间', '$' + fmt(low) + ' ~ $' + fmt(high), 'good') +
+      kpi('预期成交价', '≈ $' + fmt(target)) +
+      kpi('预留砍价空间', fmt((high - target) / high * 100, 0) + '%');
+    const ceiling = sourcing * 1.3; // 1688价折算USD的1.3倍视为高危
+    $('quoteTips').innerHTML = `<div class="tips warn">报价心法：首报 = 期望价 × 1.15~1.2；若你的首报超过 1688 同款价折算的 1.3 倍（本例约 $${fmt(ceiling)}），大概率首轮就被砍到位。<b>比价系统的锚点是1688，报价永远先看1688最低同款。</b></div>`;
+  }
+}
+
+function loadPreset() {
+  $('t_sourcing').value = 11.9; $('t_domestic').value = 2.5; $('t_loss').value = 0.5;
+  $('t_nucleus').value = 3.06; $('t_first').value = 12.45; $('t_target').value = 6.5;
+  calcTemu();
+}
+
+/* ---------- TikTok ---------- */
+function calcTiktok() {
+  const price = num('k_price'), cost = num('k_cost'), ship = num('k_ship');
+  const comm = num('k_commission') / 100, platform = num('k_platform') / 100, rate = num('k_rate');
+  const costUSD = cost / rate;
+  const fees = price * (comm + platform);
+  const net = price - costUSD - ship - fees;
+  const margin = price > 0 ? net / price * 100 : 0;
+
+  let cls = 'bad';
+  if (margin >= 30) cls = 'good'; else if (margin >= 15) cls = 'warn';
+
+  $('tiktokKpis').innerHTML =
+    kpi('货品+头程', '$' + fmt(costUSD)) +
+    kpi('佣金+支付费', '$' + fmt(fees)) +
+    kpi('单件净利', (net >= 0 ? '+' : '') + '$' + fmt(net), net >= 0 ? (margin >= 30 ? 'good' : 'warn') : 'bad') +
+    kpi('净利率', fmt(margin, 1) + '%', cls);
+
+  let tips = '';
+  if (margin < 15) tips = `<div class="tips danger"><b>⚠️ 净利率不足15%。</b>达人模式下还有寄样成本要摊，这个售价撑不住。要么提价（TikTok用户对内容型商品价格不敏感），要么换高货值组合套装。</div>`;
+  else tips = `<div class="tips ok"><b>✅ 单件模型健康。</b>记住 TikTok 的逻辑：内容带爆一款后利润远超 Temu，但前提是样品寄得出去、达人愿意拍。用下面的模型算寄样预算。</div>`;
+  $('tiktokTips').innerHTML = tips;
+
+  // ROI model
+  const outreach = num('r_outreach'), reply = num('r_reply') / 100, sample = num('r_sample') / 100;
+  const convert = num('r_convert') / 100, orders = num('r_orders'), sampleCost = num('r_sampleCost');
+  const replied = outreach * reply;
+  const samples = replied * sample;
+  const converts = samples * convert;
+  const sampleSpend = samples * sampleCost;
+  const gmv = converts * orders * price;
+  const grossFromOrders = converts * orders * Math.max(net, 0);
+  const roi = sampleSpend > 0 ? grossFromOrders / sampleSpend : 0;
+
+  let roiCls = roi >= 3 ? 'good' : roi >= 1.5 ? 'warn' : 'bad';
+  $('roiKpis').innerHTML =
+    kpi('预计寄样数', Math.round(samples) + ' 单', '') +
+    kpi('预计出单达人', Math.round(converts) + ' 人', '') +
+    kpi('样品总投入', '¥' + fmt(sampleSpend, 0), '') +
+    kpi('预计毛利回流', '¥' + fmt(grossFromOrders * rate, 0), roiCls) +
+    kpi('寄样 ROI', 'x' + fmt(roi, 1), roiCls) +
+    kpi('预计 GMV', '$' + fmt(gmv, 0), '');
+
+  let roiTips = '';
+  if (converts < 1) roiTips = `<div class="tips danger"><b>按当前转化假设，跑不出一个出单达人。</b>常见原因：触达量太少（先堆到300+再评估）、开发信没钩子、样品选品不够"上镜"。先优化开发信和选款，别急着花钱。</div>`;
+  else if (roi < 1.5) roiTips = `<div class="tips warn"><b>ROI 偏低。</b>寄样不是发传单——优先寄给粉丝量1万-10万、近期发过同类开箱视频的腰部达人，出单率远高于海投。</div>`;
+  else roiTips = `<div class="tips ok"><b>模型可行。</b>按此节奏：每轮 ¥${fmt(sampleSpend, 0)} 样品预算预计换回 $${fmt(gmv, 0)} GMV。跑通一轮后把出单达人变成长期合作，稳住复购。</div>`;
+  $('roiTips').innerHTML = roiTips;
+}
+
+/* bind & init */
+['t_sourcing','t_domestic','t_loss','t_nucleus','t_first','t_rate','t_target'].forEach(id => $(id).addEventListener('input', calcTemu));
+['k_price','k_cost','k_ship','k_commission','k_platform','k_rate','r_outreach','r_reply','r_sample','r_convert','r_orders','r_sampleCost'].forEach(id => $(id).addEventListener('input', calcTiktok));
+calcTemu(); calcTiktok();
+</script>
+</body>
+</html>
