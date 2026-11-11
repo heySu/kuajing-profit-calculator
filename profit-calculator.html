@@ -92,6 +92,13 @@
   }
   footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 28px; line-height: 1.8; }
   .hidden { display: none; }
+  .scout-push { text-align: left; max-width: 460px; margin: 8px auto; font-size: 12.5px; }
+  .scout-push summary { cursor: pointer; color: var(--primary); }
+  .scout-push-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding: 12px; border: 1px solid var(--line, #e5e7eb); border-radius: 10px; background: var(--primary-soft, #f5f7ff); }
+  .scout-push-box label { display: flex; flex-direction: column; gap: 3px; color: #6b7280; }
+  .scout-push-box input { padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 7px; font-size: 13px; }
+  .scout-status { font-size: 12px; min-height: 16px; }
+  .scout-note { font-size: 11px; color: #9ca3af; margin: 2px 0 0; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -202,6 +209,18 @@
 
   <footer>
     数据为公开规则与行业参考值，实际以平台实时核价为准 · 本工具可自由修改分发<br>
+    <button class="preset-btn" style="border-style:solid;margin:10px 0" onclick="exportSpvJson()">导出 SPU JSON（对接选品工具）</button><br>
+    <details class="scout-push" style="margin:8px 0">
+      <summary>回传选品工具（Scout）· 一键推送成本</summary>
+      <div class="scout-push-box">
+        <label>Scout 地址<input id="scoutUrl" placeholder="https://scout.example.com" /></label>
+        <label>商品 ID<input id="scoutPid" placeholder="商品在 Scout 的 ID（数字）" /></label>
+        <label>API Key<input id="scoutKey" placeholder="ks_..." type="password" /></label>
+        <button class="preset-btn" id="btnScoutPush" onclick="pushToScout()">回传成本到 Scout</button>
+        <span id="scoutStatus" class="scout-status"></span>
+        <p class="scout-note">需 Scout 服务端开启 CORS（CORS_ALLOW_ORIGINS 含本页来源）并持有具备写入权限的 API Key。数据仅推送：cost_cny / sale_usd。</p>
+      </div>
+    </details>
     Built by 杰哥哥 · 跨境工具箱 #01
   </footer>
 </div>
@@ -338,6 +357,63 @@ function calcTiktok() {
 ['t_sourcing','t_domestic','t_loss','t_nucleus','t_first','t_rate','t_target'].forEach(id => $(id).addEventListener('input', calcTemu));
 ['k_price','k_cost','k_ship','k_commission','k_platform','k_rate','r_outreach','r_reply','r_sample','r_convert','r_orders','r_sampleCost'].forEach(id => $(id).addEventListener('input', calcTiktok));
 calcTemu(); calcTiktok();
+
+function exportSpvJson() {
+  const data = {
+    type: 'profit-module',
+    cost_cny: Math.round((num('t_sourcing') + num('t_domestic') + num('t_loss')) * 100) / 100,
+    sale_usd: num('t_nucleus'),
+    generated_at: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'spu-profit.json'; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ---- 回传 Scout（跨域 API Key 推送）----
+function scoutSaveCred() {
+  try {
+    localStorage.setItem('scout_cred', JSON.stringify({
+      url: $('scoutUrl').value.trim(),
+      pid: $('scoutPid').value.trim(),
+      key: $('scoutKey').value.trim()
+    }));
+  } catch (e) { /* ignore */ }
+}
+function scoutLoadCred() {
+  try {
+    const c = JSON.parse(localStorage.getItem('scout_cred') || '{}');
+    if (c.url) $('scoutUrl').value = c.url;
+    if (c.pid) $('scoutPid').value = c.pid;
+    if (c.key) $('scoutKey').value = c.key;
+  } catch (e) { /* ignore */ }
+}
+function pushToScout() {
+  const url = $('scoutUrl').value.trim().replace(/\/+$/, '');
+  const pid = $('scoutPid').value.trim();
+  const key = $('scoutKey').value.trim();
+  const st = $('scoutStatus');
+  if (!url || !pid || !key) { st.textContent = '请填写 Scout 地址 / 商品ID / API Key'; st.style.color = '#e2554e'; return; }
+  if (!/^\d+$/.test(pid)) { st.textContent = '商品 ID 必须是数字'; st.style.color = '#e2554e'; return; }
+  scoutSaveCred();
+  const payload = {
+    type: 'profit-module',
+    cost_cny: Math.round((num('t_sourcing') + num('t_domestic') + num('t_loss')) * 100) / 100,
+    sale_usd: num('t_nucleus')
+  };
+  st.textContent = '回传中…'; st.style.color = '#888';
+  fetch(url + '/api/products/' + pid + '/spu-import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key },
+    body: JSON.stringify({ payload })
+  }).then(async (r) => {
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) { st.textContent = '已回传至 Scout：' + ((j.imported || []).join('、') || 'ok'); st.style.color = '#2e9e57'; }
+    else { st.textContent = '失败：' + (j.error || r.status); st.style.color = '#e2554e'; }
+  }).catch((e) => { st.textContent = '网络/CORS 错误：' + e.message + '（确认 Scout 已开启 CORS）'; st.style.color = '#e2554e'; });
+}
+scoutLoadCred();
 </script>
 </body>
 </html>
